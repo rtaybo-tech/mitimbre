@@ -30,7 +30,7 @@
         /* --- MODAL LEGAL --- */
         #legal-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98); z-index: 2000;
+            background: rgba(0,0,0,0.98); z-index: 5000;
             display: flex; justify-content: center; align-items: center; padding: 20px;
         }
 
@@ -46,7 +46,7 @@
         .logo { 
             font-size: 4rem; 
             margin-bottom: 10px; 
-            cursor: default; 
+            cursor: pointer; 
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
@@ -69,7 +69,7 @@
         /* --- PANEL DE CONFIGURACIÓN --- */
         #admin-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--dark-bg); z-index: 3000; padding: 20px; overflow-y: auto;
+            background: var(--dark-bg); z-index: 4000; padding: 20px; overflow-y: auto;
         }
 
         .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -96,7 +96,7 @@
         #custom-alert {
             display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: white; color: black; padding: 25px; border-radius: 20px;
-            width: 90%; max-width: 400px; z-index: 4000; text-align: center;
+            width: 90%; max-width: 400px; z-index: 6000; text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
@@ -104,7 +104,7 @@
 </head>
 <body>
 
-    <!-- MODAL LEGAL (RECUPERADO DEL ORIGINAL) -->
+    <!-- MODAL LEGAL -->
     <div id="legal-modal">
         <div class="modal-content">
             <h2 style="color:var(--primary-color); margin-bottom: 15px;">Aviso Legal</h2>
@@ -118,7 +118,6 @@
     <!-- INTERFAZ PRINCIPAL -->
     <div id="main-ui">
         <header>
-            <!-- Acceso: 4 clics aquí -->
             <div class="logo" id="logo-trigger" onclick="handleLogoClick()">🔔</div>
             <h1>Timbre Digital</h1>
             <p style="color: var(--text-dim);">Toque el botón correspondiente para anunciar su llegada</p>
@@ -155,7 +154,7 @@
         <div id="admin-list" style="margin-top: 15px;"></div>
     </div>
 
-    <!-- ALERTA DE LLAMADA (CON LEYENDA ORIGINAL) -->
+    <!-- ALERTA DE LLAMADA -->
     <div id="custom-alert">
         <h3 style="margin-bottom: 10px;">Confirmar Envío</h3>
         <p id="alert-text" style="margin-bottom: 15px; font-size: 0.95rem;"></p>
@@ -169,9 +168,9 @@
     </div>
 
     <script>
-        // Sistema de seguridad por 4 clicks
         let clickCount = 0;
         let lastClickTime = 0;
+        let timbreSeleccionado = null;
 
         function handleLogoClick() {
             const now = Date.now();
@@ -184,7 +183,6 @@
             }
         }
 
-        // Carga de datos de localStorage
         let listadoTimbres = JSON.parse(localStorage.getItem('timbres_config')) || [
             { id: 1, nombre: "Portería", whatsapp: "5491100000000" }
         ];
@@ -256,11 +254,13 @@
         }
 
         function showAlert(item) {
+            timbreSeleccionado = item;
             const alertBox = document.getElementById('custom-alert');
             document.getElementById('alert-text').innerHTML = `¿Desea avisar a <b>${item.nombre}</b> que se encuentra en la puerta?`;
             alertBox.style.display = 'block';
+            
             document.getElementById('confirm-btn').onclick = () => {
-                const url = `https://api.whatsapp.com/send?phone=${item.whatsapp}&text=${encodeURIComponent(mensajeDefault)}`;
+                const url = `https://api.whatsapp.com/send?phone=${timbreSeleccionado.whatsapp}&text=${encodeURIComponent(mensajeDefault)}`;
                 window.location.href = url;
             };
         }
@@ -268,6 +268,11 @@
         function closeAlert() {
             document.getElementById('custom-alert').style.display = 'none';
         }
+
+        // Asegurar que el modal se vea al cargar
+        window.onload = () => {
+            document.getElementById('legal-modal').style.display = 'flex';
+        };
     </script>
 </body>
 </html>
