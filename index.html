@@ -104,30 +104,30 @@
 </head>
 <body>
 
-    <!-- MODAL LEGAL -->
+    <!-- MODAL LEGAL (RECUPERADO DEL ORIGINAL) -->
     <div id="legal-modal">
         <div class="modal-content">
-            <h2 style="color:var(--primary-color); margin-bottom: 15px;">Bienvenido</h2>
-            <p style="font-size: 0.9rem; color: #ccc; margin-bottom: 25px;">
-                Para avisar que ha llegado, por favor acepte los términos y elija a quién desea llamar.
+            <h2 style="color:var(--primary-color); margin-bottom: 15px;">Aviso Legal</h2>
+            <p style="font-size: 0.85rem; color: #ccc; text-align: justify; margin-bottom: 20px; line-height: 1.4;">
+                Este sistema es un facilitador de contacto técnico entre visitantes y residentes. El prestador del servicio no se responsabiliza por el contenido de los mensajes enviados ni por el uso indebido de la plataforma. Al continuar, usted acepta que el sistema redirigirá su solicitud a la aplicación WhatsApp del destinatario. No se almacenan datos personales en servidores externos conforme a la Ley 25.326 de Protección de Datos Personales.
             </p>
-            <button class="btn btn-primary" onclick="acceptLegal()">Entrar al Timbre</button>
+            <button class="btn btn-primary" onclick="acceptLegal()">Acepto y deseo continuar</button>
         </div>
     </div>
 
     <!-- INTERFAZ PRINCIPAL -->
     <div id="main-ui">
         <header>
-            <!-- El acceso: Tocar 4 veces este emoji -->
+            <!-- Acceso: 4 clics aquí -->
             <div class="logo" id="logo-trigger" onclick="handleLogoClick()">🔔</div>
             <h1>Timbre Digital</h1>
-            <p style="color: var(--text-dim);">Toque el botón correspondiente</p>
+            <p style="color: var(--text-dim);">Toque el botón correspondiente para anunciar su llegada</p>
         </header>
 
         <div class="bell-grid" id="bell-grid"></div>
 
         <footer style="text-align: center; margin-top: 40px;">
-            <p style="font-size: 0.7rem; color: #333;">Versión 2.2</p>
+            <p style="font-size: 0.7rem; color: #333;">Sistema de Enlace Técnico v2.2</p>
         </footer>
     </div>
 
@@ -146,7 +146,7 @@
             </div>
             <div class="input-group">
                 <label>WhatsApp (Ej: 5491100000000)</label>
-                <input type="number" id="new-phone" placeholder="Número sin el +">
+                <input type="number" id="new-phone" placeholder="Número completo sin el +">
             </div>
             <button class="btn btn-primary" onclick="addTimbre()">Guardar Timbre</button>
         </div>
@@ -155,9 +155,13 @@
         <div id="admin-list" style="margin-top: 15px;"></div>
     </div>
 
-    <!-- ALERTA DE LLAMADA -->
+    <!-- ALERTA DE LLAMADA (CON LEYENDA ORIGINAL) -->
     <div id="custom-alert">
-        <p id="alert-text" style="margin-bottom: 20px; font-size: 1.1rem;"></p>
+        <h3 style="margin-bottom: 10px;">Confirmar Envío</h3>
+        <p id="alert-text" style="margin-bottom: 15px; font-size: 0.95rem;"></p>
+        <p style="font-size: 0.75rem; color: #666; margin-bottom: 20px;">
+            Al pulsar "Enviar", se abrirá WhatsApp con un mensaje predeterminado.
+        </p>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-outline" style="color: black; border-color: #ccc;" onclick="closeAlert()">Cancelar</button>
             <button class="btn btn-primary" id="confirm-btn">Enviar Mensaje</button>
@@ -165,29 +169,27 @@
     </div>
 
     <script>
-        // Sistema de seguridad por clicks
+        // Sistema de seguridad por 4 clicks
         let clickCount = 0;
         let lastClickTime = 0;
 
         function handleLogoClick() {
             const now = Date.now();
             if (now - lastClickTime > 1500) clickCount = 0; 
-            
             clickCount++;
             lastClickTime = now;
-
             if (clickCount === 4) {
                 clickCount = 0;
                 checkAdminPassword();
             }
         }
 
-        // Carga de datos
+        // Carga de datos de localStorage
         let listadoTimbres = JSON.parse(localStorage.getItem('timbres_config')) || [
             { id: 1, nombre: "Portería", whatsapp: "5491100000000" }
         ];
 
-        const mensajeDefault = "🔔 *AVISO DE TIMBRE*: Hay alguien en la puerta consultando por usted.";
+        const mensajeDefault = "🔔 *AVISO DE TIMBRE*: Hay alguien en la puerta solicitando atención.";
 
         function renderTimbres() {
             const grid = document.getElementById('bell-grid');
@@ -198,7 +200,7 @@
             listadoTimbres.forEach((item, index) => {
                 const btn = document.createElement('button');
                 btn.className = 'bell-button';
-                btn.innerHTML = `<i>LLAMAR A</i> <strong>${item.nombre}</strong>`;
+                btn.innerHTML = `<i>TIMBRE</i> <strong>${item.nombre}</strong>`;
                 btn.onclick = () => showAlert(item);
                 grid.appendChild(btn);
 
@@ -220,7 +222,7 @@
         function addTimbre() {
             const name = document.getElementById('new-name').value;
             const phone = document.getElementById('new-phone').value;
-            if(!name || !phone) return alert("Completá los campos");
+            if(!name || !phone) return alert("Por favor complete los campos.");
             listadoTimbres.push({ id: Date.now(), nombre: name, whatsapp: phone });
             document.getElementById('new-name').value = '';
             document.getElementById('new-phone').value = '';
@@ -228,7 +230,7 @@
         }
 
         function removeTimbre(index) {
-            if(confirm("¿Borrar este timbre?")) {
+            if(confirm("¿Seguro desea eliminar este registro?")) {
                 listadoTimbres.splice(index, 1);
                 renderTimbres();
             }
@@ -236,7 +238,6 @@
 
         function checkAdminPassword() {
             const pass = prompt("Ingrese la clave de configuración:");
-            // Clave actualizada a siso1926
             if(pass === "siso1926") {
                 document.getElementById('admin-panel').style.display = 'block';
             } else {
@@ -256,7 +257,7 @@
 
         function showAlert(item) {
             const alertBox = document.getElementById('custom-alert');
-            document.getElementById('alert-text').innerHTML = `¿Avisar a <b>${item.nombre}</b> que estás en la puerta?`;
+            document.getElementById('alert-text').innerHTML = `¿Desea avisar a <b>${item.nombre}</b> que se encuentra en la puerta?`;
             alertBox.style.display = 'block';
             document.getElementById('confirm-btn').onclick = () => {
                 const url = `https://api.whatsapp.com/send?phone=${item.whatsapp}&text=${encodeURIComponent(mensajeDefault)}`;
