@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timbre Digital - Acceso Seguro</title>
+    <title>Timbre Digital - Enlace Técnico</title>
     <style>
         :root {
             --primary-color: #25d366;
@@ -44,11 +44,8 @@
         
         header { text-align: center; margin-bottom: 30px; }
         .logo { 
-            font-size: 4rem; 
-            margin-bottom: 10px; 
-            cursor: pointer; 
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            font-size: 4rem; margin-bottom: 10px; cursor: pointer; 
+            user-select: none; -webkit-tap-highlight-color: transparent;
         }
         
         .bell-grid {
@@ -59,8 +56,7 @@
         .bell-button {
             background: var(--card-bg); color: white; border: 1px solid #333;
             padding: 25px 10px; border-radius: 15px; cursor: pointer;
-            display: flex; flex-direction: column; align-items: center;
-            transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; transition: 0.2s;
         }
 
         .bell-button:active { transform: scale(0.95); background: #333; }
@@ -80,9 +76,7 @@
             background: #2a2a2a; color: white; font-size: 1rem;
         }
 
-        .btn {
-            padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%;
-        }
+        .btn { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%; }
         .btn-primary { background: var(--primary-color); color: black; }
         .btn-outline { background: transparent; border: 1px solid #444; color: white; margin-top: 10px; }
         .btn-danger { background: var(--danger); color: white; padding: 5px 10px; font-size: 0.8rem; width: auto; }
@@ -92,19 +86,18 @@
             display: flex; justify-content: space-between; align-items: center;
         }
 
-        /* --- ALERTAS --- */
+        /* --- ALERTA DE ENVÍO --- */
         #custom-alert {
             display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: white; color: black; padding: 25px; border-radius: 20px;
             width: 90%; max-width: 400px; z-index: 6000; text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-
     </style>
 </head>
 <body>
 
-    <!-- MODAL LEGAL -->
+    <!-- AVISO LEGAL ORIGINAL -->
     <div id="legal-modal">
         <div class="modal-content">
             <h2 style="color:var(--primary-color); margin-bottom: 15px;">Aviso Legal</h2>
@@ -115,51 +108,56 @@
         </div>
     </div>
 
-    <!-- INTERFAZ PRINCIPAL -->
+    <!-- UI PRINCIPAL -->
     <div id="main-ui">
         <header>
             <div class="logo" id="logo-trigger" onclick="handleLogoClick()">🔔</div>
             <h1>Timbre Digital</h1>
+            <!-- Identificador de la propiedad -->
+            <p id="cliente-tag" style="color: var(--primary-color); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;"></p>
             <p style="color: var(--text-dim);">Toque el botón correspondiente para anunciar su llegada</p>
         </header>
 
         <div class="bell-grid" id="bell-grid"></div>
 
         <footer style="text-align: center; margin-top: 40px;">
-            <p style="font-size: 0.7rem; color: #333;">Sistema de Enlace Técnico v2.2</p>
+            <p style="font-size: 0.7rem; color: #333;">Sistema de Enlace Técnico v2.3</p>
         </footer>
     </div>
 
-    <!-- PANEL ADMIN -->
+    <!-- PANEL DE CONTROL -->
     <div id="admin-panel">
         <div class="admin-header">
-            <h2>Panel de Configuración</h2>
+            <div>
+                <h2>Configuración</h2>
+                <small id="admin-cliente-tag" style="color: var(--primary-color)"></small>
+            </div>
             <button class="btn btn-outline" style="width: auto;" onclick="closeAdmin()">Salir</button>
         </div>
 
         <div style="background: var(--card-bg); padding: 15px; border-radius: 15px; margin-bottom: 30px;">
             <h3 style="margin-bottom: 15px;">Añadir Timbre</h3>
             <div class="input-group">
-                <label>Nombre del Departamento / Local</label>
-                <input type="text" id="new-name" placeholder="Ej: Departamento 4B">
+                <label>Nombre (Ej: Depto 1A)</label>
+                <input type="text" id="new-name" placeholder="Nombre a mostrar">
             </div>
             <div class="input-group">
                 <label>WhatsApp (Ej: 5491100000000)</label>
-                <input type="number" id="new-phone" placeholder="Número completo sin el +">
+                <input type="number" id="new-phone" placeholder="Número completo">
             </div>
             <button class="btn btn-primary" onclick="addTimbre()">Guardar Timbre</button>
         </div>
 
-        <h3>Timbres Registrados</h3>
+        <h3>Lista de Timbres</h3>
         <div id="admin-list" style="margin-top: 15px;"></div>
     </div>
 
-    <!-- ALERTA DE LLAMADA -->
+    <!-- DIÁLOGO DE CONFIRMACIÓN -->
     <div id="custom-alert">
         <h3 style="margin-bottom: 10px;">Confirmar Envío</h3>
         <p id="alert-text" style="margin-bottom: 15px; font-size: 0.95rem;"></p>
         <p style="font-size: 0.75rem; color: #666; margin-bottom: 20px;">
-            Al pulsar "Enviar", se abrirá WhatsApp con un mensaje predeterminado.
+            Se abrirá WhatsApp con un mensaje predeterminado.
         </p>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-outline" style="color: black; border-color: #ccc;" onclick="closeAlert()">Cancelar</button>
@@ -168,10 +166,19 @@
     </div>
 
     <script>
+        // LÓGICA DE MULTI-CLIENTE (El truco del ?id=)
+        const urlParams = new URLSearchParams(window.location.search);
+        const clienteID = urlParams.get('id') || 'general'; 
+        const storageKey = `timbres_config_${clienteID}`;
+        
+        document.getElementById('cliente-tag').innerText = clienteID !== 'general' ? `Propiedad: ${clienteID}` : "";
+        document.getElementById('admin-cliente-tag').innerText = `ID: ${clienteID}`;
+
         let clickCount = 0;
         let lastClickTime = 0;
         let timbreSeleccionado = null;
 
+        // Acceso administrativo: 4 clics en la campana
         function handleLogoClick() {
             const now = Date.now();
             if (now - lastClickTime > 1500) clickCount = 0; 
@@ -183,10 +190,8 @@
             }
         }
 
-        let listadoTimbres = JSON.parse(localStorage.getItem('timbres_config')) || [
-            { id: 1, nombre: "Portería", whatsapp: "5491100000000" }
-        ];
-
+        // Cargar datos específicos del cajón de este cliente
+        let listadoTimbres = JSON.parse(localStorage.getItem(storageKey)) || [];
         const mensajeDefault = "🔔 *AVISO DE TIMBRE*: Hay alguien en la puerta solicitando atención.";
 
         function renderTimbres() {
@@ -194,6 +199,10 @@
             const adminList = document.getElementById('admin-list');
             grid.innerHTML = '';
             adminList.innerHTML = '';
+
+            if (listadoTimbres.length === 0) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#666; margin-top:20px;">Sin timbres configurados.</p>';
+            }
 
             listadoTimbres.forEach((item, index) => {
                 const btn = document.createElement('button');
@@ -214,13 +223,13 @@
                 adminList.appendChild(itemDiv);
             });
             
-            localStorage.setItem('timbres_config', JSON.stringify(listadoTimbres));
+            localStorage.setItem(storageKey, JSON.stringify(listadoTimbres));
         }
 
         function addTimbre() {
             const name = document.getElementById('new-name').value;
             const phone = document.getElementById('new-phone').value;
-            if(!name || !phone) return alert("Por favor complete los campos.");
+            if(!name || !phone) return alert("Complete los campos.");
             listadoTimbres.push({ id: Date.now(), nombre: name, whatsapp: phone });
             document.getElementById('new-name').value = '';
             document.getElementById('new-phone').value = '';
@@ -228,12 +237,13 @@
         }
 
         function removeTimbre(index) {
-            if(confirm("¿Seguro desea eliminar este registro?")) {
+            if(confirm("¿Eliminar este timbre?")) {
                 listadoTimbres.splice(index, 1);
                 renderTimbres();
             }
         }
 
+        // NUEVA CLAVE: siso1926
         function checkAdminPassword() {
             const pass = prompt("Ingrese la clave de configuración:");
             if(pass === "siso1926") {
@@ -256,7 +266,7 @@
         function showAlert(item) {
             timbreSeleccionado = item;
             const alertBox = document.getElementById('custom-alert');
-            document.getElementById('alert-text').innerHTML = `¿Desea avisar a <b>${item.nombre}</b> que se encuentra en la puerta?`;
+            document.getElementById('alert-text').innerHTML = `¿Avisar a <b>${item.nombre}</b> que está en la puerta?`;
             alertBox.style.display = 'block';
             
             document.getElementById('confirm-btn').onclick = () => {
@@ -269,7 +279,6 @@
             document.getElementById('custom-alert').style.display = 'none';
         }
 
-        // Asegurar que el modal se vea al cargar
         window.onload = () => {
             document.getElementById('legal-modal').style.display = 'flex';
         };
