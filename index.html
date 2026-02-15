@@ -1,287 +1,302 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timbre Digital - Enlace Técnico</title>
-    <style>
-        :root {
-            --primary-color: #25d366;
-            --secondary-color: #128c7e;
-            --dark-bg: #121212;
-            --card-bg: #1e1e1e;
-            --text-main: #ffffff;
-            --text-dim: #b0b0b0;
-            --danger: #ff4444;
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  onSnapshot, 
+  setDoc, 
+  getDoc 
+} from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  signInWithCustomToken, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { Bell, Settings, X, Send, Trash2, AlertTriangle } from 'lucide-react';
+
+// Configuración de Firebase proporcionada por el entorno
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'timbre-comercial-pro';
+
+const App = () => {
+  const [user, setUser] = useState(null);
+  const [timbres, setTimbres] = useState([]);
+  const [showLegal, setShowLegal] = useState(true);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [selectedTimbre, setSelectedTimbre] = useState(null);
+  const [clickCount, setClickCount] = useState(0);
+  const [lastClick, setLastClick] = useState(0);
+  
+  // Estados para nuevo timbre
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+
+  // Identificador del cliente desde la URL (?id=casa1)
+  const urlParams = new URLSearchParams(window.location.search);
+  const clienteID = urlParams.get('id') || 'general';
+
+  // 1. Autenticación inicial
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
         }
+      } catch (error) {
+        console.error("Error de autenticación", error);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+  // 2. Escuchar datos de la Nube (Firestore)
+  useEffect(() => {
+    if (!user) return;
 
-        body {
-            background-color: var(--dark-bg);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
+    // Referencia al documento específico de este cliente/edificio
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'clientes', clienteID);
+    
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setTimbres(docSnap.data().lista || []);
+      } else {
+        setTimbres([]);
+      }
+    }, (error) => {
+      console.error("Error leyendo de la nube:", error);
+    });
+
+    return () => unsubscribe();
+  }, [user, clienteID]);
+
+  // Manejo de acceso administrativo (4 clics)
+  const handleLogoClick = () => {
+    const now = Date.now();
+    if (now - lastClick > 1500) {
+      setClickCount(1);
+    } else {
+      const newCount = clickCount + 1;
+      setClickCount(newCount);
+      if (newCount === 4) {
+        setClickCount(0);
+        const pass = prompt("Ingrese la clave de configuración (escrita en el timbre):");
+        if (pass === "siso1926") {
+          setShowAdmin(true);
+        } else {
+          alert("Clave incorrecta.");
         }
+      }
+    }
+    setLastClick(now);
+  };
 
-        /* --- MODAL LEGAL --- */
-        #legal-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98); z-index: 5000;
-            display: flex; justify-content: center; align-items: center; padding: 20px;
-        }
+  // Guardar en la Nube
+  const saveToCloud = async (nuevaLista) => {
+    if (!user) return;
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'clientes', clienteID);
+    try {
+      await setDoc(docRef, { lista: nuevaLista, updatedAt: Date.now() });
+    } catch (error) {
+      alert("Error al guardar en la nube. Verifique su conexión.");
+    }
+  };
 
-        .modal-content {
-            background: var(--card-bg); padding: 25px; border-radius: 20px;
-            max-width: 450px; width: 100%; border: 1px solid #333; text-align: center;
-        }
+  const addTimbre = () => {
+    if (!newName || !newPhone) return alert("Complete los datos");
+    const nuevaLista = [...timbres, { id: Date.now(), nombre: newName, whatsapp: newPhone }];
+    setTimbres(nuevaLista);
+    saveToCloud(nuevaLista);
+    setNewName('');
+    setNewPhone('');
+  };
 
-        /* --- INTERFAZ PRINCIPAL --- */
-        #main-ui { display: none; width: 100%; max-width: 500px; }
-        
-        header { text-align: center; margin-bottom: 30px; }
-        .logo { 
-            font-size: 4rem; margin-bottom: 10px; cursor: pointer; 
-            user-select: none; -webkit-tap-highlight-color: transparent;
-        }
-        
-        .bell-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 15px; margin-bottom: 40px;
-        }
+  const removeTimbre = (id) => {
+    const nuevaLista = timbres.filter(t => t.id !== id);
+    setTimbres(nuevaLista);
+    saveToCloud(nuevaLista);
+  };
 
-        .bell-button {
-            background: var(--card-bg); color: white; border: 1px solid #333;
-            padding: 25px 10px; border-radius: 15px; cursor: pointer;
-            display: flex; flex-direction: column; align-items: center; transition: 0.2s;
-        }
+  const triggerWhatsApp = () => {
+    const mensaje = encodeURIComponent("🔔 *AVISO DE TIMBRE*: Hay alguien en la puerta solicitando atención.");
+    window.location.href = `https://api.whatsapp.com/send?phone=${selectedTimbre.whatsapp}&text=${mensaje}`;
+    setShowAlert(false);
+  };
 
-        .bell-button:active { transform: scale(0.95); background: #333; }
-        .bell-button i { font-size: 0.7rem; color: var(--primary-color); font-style: normal; margin-bottom: 5px; }
+  if (showLegal) {
+    return (
+      <div className="fixed inset-0 bg-black/95 z-[5000] flex items-center justify-center p-6 text-white font-sans">
+        <div className="bg-[#1e1e1e] p-8 rounded-3xl border border-gray-800 max-w-md w-full text-center shadow-2xl">
+          <div className="flex justify-center mb-4 text-[#25d366]">
+            <AlertTriangle size={48} />
+          </div>
+          <h2 className="text-2xl font-bold mb-4">Aviso Legal</h2>
+          <p className="text-sm text-gray-400 text-justify mb-8 leading-relaxed">
+            Este sistema es un facilitador de contacto técnico entre visitantes y residentes. 
+            El prestador del servicio no se responsabiliza por el contenido de los mensajes 
+            enviados ni por el uso indebido de la plataforma. Al continuar, usted acepta que 
+            el sistema redirigirá su solicitud a la aplicación WhatsApp del destinatario. 
+            No se almacenan datos personales en servidores externos conforme a la Ley 25.326.
+          </p>
+          <button 
+            onClick={() => setShowLegal(false)}
+            className="w-full py-4 bg-[#25d366] text-black font-bold rounded-xl hover:bg-[#128c7e] transition-colors"
+          >
+            Acepto y deseo continuar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-        /* --- PANEL DE CONFIGURACIÓN --- */
-        #admin-panel {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--dark-bg); z-index: 4000; padding: 20px; overflow-y: auto;
-        }
+  return (
+    <div className="min-h-screen bg-[#121212] text-white font-sans p-6 flex flex-col items-center">
+      
+      {/* HEADER */}
+      <header className="text-center mb-10 w-full max-w-md">
+        <div 
+          onClick={handleLogoClick}
+          className="text-6xl mb-4 cursor-pointer select-none active:scale-90 transition-transform inline-block"
+        >
+          🔔
+        </div>
+        <h1 className="text-3xl font-bold mb-1">Timbre Digital</h1>
+        {clienteID !== 'general' && (
+          <p className="text-[#25d366] text-xs font-bold tracking-widest uppercase mb-2">
+            Propiedad: {clienteID}
+          </p>
+        )}
+        <p className="text-gray-500 text-sm italic">Sistema de Enlace Técnico v3.0 Cloud</p>
+      </header>
 
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; color: var(--text-dim); font-size: 0.9rem; }
-        input {
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444;
-            background: #2a2a2a; color: white; font-size: 1rem;
-        }
+      {/* GRID DE BOTONES */}
+      <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+        {timbres.length === 0 ? (
+          <div className="col-span-2 py-20 text-center text-gray-600 border-2 border-dashed border-gray-800 rounded-2xl">
+            Esperando configuración del administrador...
+          </div>
+        ) : (
+          timbres.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => { setSelectedTimbre(item); setShowAlert(true); }}
+              className="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 flex flex-col items-center active:bg-[#2a2a2a] transition-colors shadow-lg"
+            >
+              <span className="text-[10px] text-[#25d366] font-bold mb-1">LLAMAR AL</span>
+              <span className="text-lg font-bold text-center break-words w-full">{item.nombre}</span>
+            </button>
+          ))
+        )}
+      </div>
 
-        .btn { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%; }
-        .btn-primary { background: var(--primary-color); color: black; }
-        .btn-outline { background: transparent; border: 1px solid #444; color: white; margin-top: 10px; }
-        .btn-danger { background: var(--danger); color: white; padding: 5px 10px; font-size: 0.8rem; width: auto; }
+      {/* PANEL ADMIN (CLOUD) */}
+      {showAdmin && (
+        <div className="fixed inset-0 bg-[#121212] z-[6000] p-6 overflow-y-auto">
+          <div className="max-w-md mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2 className="text-2xl font-bold">Configuración Nube</h2>
+                <p className="text-[#25d366] text-xs">Editando ID: {clienteID}</p>
+              </div>
+              <button onClick={() => setShowAdmin(false)} className="p-2 bg-gray-800 rounded-full">
+                <X size={24} />
+              </button>
+            </div>
 
-        .admin-list-item {
-            background: #2a2a2a; padding: 15px; border-radius: 10px; margin-bottom: 10px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+            <div className="bg-[#1e1e1e] p-6 rounded-2xl border border-gray-800 mb-8">
+              <h3 className="font-bold mb-4">Añadir Nuevo Timbre</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1 uppercase">Nombre / Depto</label>
+                  <input 
+                    type="text" 
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="w-full bg-[#2a2a2a] border border-gray-700 p-3 rounded-lg focus:outline-none focus:border-[#25d366]"
+                    placeholder="Ej: Depto 4B"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1 uppercase">WhatsApp (Completo)</label>
+                  <input 
+                    type="number" 
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    className="w-full bg-[#2a2a2a] border border-gray-700 p-3 rounded-lg focus:outline-none focus:border-[#25d366]"
+                    placeholder="54911..."
+                  />
+                </div>
+                <button 
+                  onClick={addTimbre}
+                  className="w-full py-3 bg-[#25d366] text-black font-bold rounded-lg shadow-lg active:scale-95 transition-transform"
+                >
+                  Subir a la Nube
+                </button>
+              </div>
+            </div>
 
-        /* --- ALERTA DE ENVÍO --- */
-        #custom-alert {
-            display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: white; color: black; padding: 25px; border-radius: 20px;
-            width: 90%; max-width: 400px; z-index: 6000; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-    </style>
-</head>
-<body>
+            <h3 className="font-bold mb-4">Timbres en el sistema</h3>
+            <div className="space-y-3">
+              {timbres.map((item) => (
+                <div key={item.id} className="bg-[#1e1e1e] p-4 rounded-xl border border-gray-800 flex justify-between items-center">
+                  <div>
+                    <p className="font-bold">{item.nombre}</p>
+                    <p className="text-xs text-gray-500">{item.whatsapp}</p>
+                  </div>
+                  <button onClick={() => removeTimbre(item.id)} className="text-red-500 p-2">
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
-    <!-- AVISO LEGAL ORIGINAL -->
-    <div id="legal-modal">
-        <div class="modal-content">
-            <h2 style="color:var(--primary-color); margin-bottom: 15px;">Aviso Legal</h2>
-            <p style="font-size: 0.85rem; color: #ccc; text-align: justify; margin-bottom: 20px; line-height: 1.4;">
-                Este sistema es un facilitador de contacto técnico entre visitantes y residentes. El prestador del servicio no se responsabiliza por el contenido de los mensajes enviados ni por el uso indebido de la plataforma. Al continuar, usted acepta que el sistema redirigirá su solicitud a la aplicación WhatsApp del destinatario. No se almacenan datos personales en servidores externos conforme a la Ley 25.326 de Protección de Datos Personales.
+      {/* MODAL DE CONFIRMACIÓN WHATSAPP */}
+      {showAlert && (
+        <div className="fixed inset-0 bg-black/80 z-[7000] flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white text-black p-8 rounded-t-[40px] sm:rounded-[32px] max-w-md w-full text-center">
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 sm:hidden"></div>
+            <h3 className="text-xl font-bold mb-2">Confirmar Envío</h3>
+            <p className="text-gray-600 mb-6 text-sm">
+              ¿Desea avisar a <b>{selectedTimbre?.nombre}</b> que se encuentra en la puerta?
             </p>
-            <button class="btn btn-primary" onclick="acceptLegal()">Acepto y deseo continuar</button>
-        </div>
-    </div>
-
-    <!-- UI PRINCIPAL -->
-    <div id="main-ui">
-        <header>
-            <div class="logo" id="logo-trigger" onclick="handleLogoClick()">🔔</div>
-            <h1>Timbre Digital</h1>
-            <!-- Identificador de la propiedad -->
-            <p id="cliente-tag" style="color: var(--primary-color); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;"></p>
-            <p style="color: var(--text-dim);">Toque el botón correspondiente para anunciar su llegada</p>
-        </header>
-
-        <div class="bell-grid" id="bell-grid"></div>
-
-        <footer style="text-align: center; margin-top: 40px;">
-            <p style="font-size: 0.7rem; color: #333;">Sistema de Enlace Técnico v2.3</p>
-        </footer>
-    </div>
-
-    <!-- PANEL DE CONTROL -->
-    <div id="admin-panel">
-        <div class="admin-header">
-            <div>
-                <h2>Configuración</h2>
-                <small id="admin-cliente-tag" style="color: var(--primary-color)"></small>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowAlert(false)}
+                className="flex-1 py-4 bg-gray-100 font-bold rounded-2xl hover:bg-gray-200"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={triggerWhatsApp}
+                className="flex-1 py-4 bg-[#25d366] text-white font-bold rounded-2xl shadow-xl flex items-center justify-center gap-2"
+              >
+                <Send size={18} /> Enviar
+              </button>
             </div>
-            <button class="btn btn-outline" style="width: auto;" onclick="closeAdmin()">Salir</button>
+            <p className="mt-4 text-[10px] text-gray-400 uppercase tracking-widest">
+              Conexión Directa v3.0
+            </p>
+          </div>
         </div>
+      )}
 
-        <div style="background: var(--card-bg); padding: 15px; border-radius: 15px; margin-bottom: 30px;">
-            <h3 style="margin-bottom: 15px;">Añadir Timbre</h3>
-            <div class="input-group">
-                <label>Nombre (Ej: Depto 1A)</label>
-                <input type="text" id="new-name" placeholder="Nombre a mostrar">
-            </div>
-            <div class="input-group">
-                <label>WhatsApp (Ej: 5491100000000)</label>
-                <input type="number" id="new-phone" placeholder="Número completo">
-            </div>
-            <button class="btn btn-primary" onclick="addTimbre()">Guardar Timbre</button>
-        </div>
-
-        <h3>Lista de Timbres</h3>
-        <div id="admin-list" style="margin-top: 15px;"></div>
+      <footer className="mt-auto py-8 opacity-20 text-[10px] tracking-[4px]">
+        SISTEMA DE ENLACE SEGURO
+      </footer>
     </div>
+  );
+};
 
-    <!-- DIÁLOGO DE CONFIRMACIÓN -->
-    <div id="custom-alert">
-        <h3 style="margin-bottom: 10px;">Confirmar Envío</h3>
-        <p id="alert-text" style="margin-bottom: 15px; font-size: 0.95rem;"></p>
-        <p style="font-size: 0.75rem; color: #666; margin-bottom: 20px;">
-            Se abrirá WhatsApp con un mensaje predeterminado.
-        </p>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn btn-outline" style="color: black; border-color: #ccc;" onclick="closeAlert()">Cancelar</button>
-            <button class="btn btn-primary" id="confirm-btn">Enviar Mensaje</button>
-        </div>
-    </div>
-
-    <script>
-        // LÓGICA DE MULTI-CLIENTE (El truco del ?id=)
-        const urlParams = new URLSearchParams(window.location.search);
-        const clienteID = urlParams.get('id') || 'general'; 
-        const storageKey = `timbres_config_${clienteID}`;
-        
-        document.getElementById('cliente-tag').innerText = clienteID !== 'general' ? `Propiedad: ${clienteID}` : "";
-        document.getElementById('admin-cliente-tag').innerText = `ID: ${clienteID}`;
-
-        let clickCount = 0;
-        let lastClickTime = 0;
-        let timbreSeleccionado = null;
-
-        // Acceso administrativo: 4 clics en la campana
-        function handleLogoClick() {
-            const now = Date.now();
-            if (now - lastClickTime > 1500) clickCount = 0; 
-            clickCount++;
-            lastClickTime = now;
-            if (clickCount === 4) {
-                clickCount = 0;
-                checkAdminPassword();
-            }
-        }
-
-        // Cargar datos específicos del cajón de este cliente
-        let listadoTimbres = JSON.parse(localStorage.getItem(storageKey)) || [];
-        const mensajeDefault = "🔔 *AVISO DE TIMBRE*: Hay alguien en la puerta solicitando atención.";
-
-        function renderTimbres() {
-            const grid = document.getElementById('bell-grid');
-            const adminList = document.getElementById('admin-list');
-            grid.innerHTML = '';
-            adminList.innerHTML = '';
-
-            if (listadoTimbres.length === 0) {
-                grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#666; margin-top:20px;">Sin timbres configurados.</p>';
-            }
-
-            listadoTimbres.forEach((item, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'bell-button';
-                btn.innerHTML = `<i>TIMBRE</i> <strong>${item.nombre}</strong>`;
-                btn.onclick = () => showAlert(item);
-                grid.appendChild(btn);
-
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'admin-list-item';
-                itemDiv.innerHTML = `
-                    <div>
-                        <strong>${item.nombre}</strong><br>
-                        <small style="color:var(--text-dim)">${item.whatsapp}</small>
-                    </div>
-                    <button class="btn btn-danger" onclick="removeTimbre(${index})">Eliminar</button>
-                `;
-                adminList.appendChild(itemDiv);
-            });
-            
-            localStorage.setItem(storageKey, JSON.stringify(listadoTimbres));
-        }
-
-        function addTimbre() {
-            const name = document.getElementById('new-name').value;
-            const phone = document.getElementById('new-phone').value;
-            if(!name || !phone) return alert("Complete los campos.");
-            listadoTimbres.push({ id: Date.now(), nombre: name, whatsapp: phone });
-            document.getElementById('new-name').value = '';
-            document.getElementById('new-phone').value = '';
-            renderTimbres();
-        }
-
-        function removeTimbre(index) {
-            if(confirm("¿Eliminar este timbre?")) {
-                listadoTimbres.splice(index, 1);
-                renderTimbres();
-            }
-        }
-
-        // NUEVA CLAVE: siso1926
-        function checkAdminPassword() {
-            const pass = prompt("Ingrese la clave de configuración:");
-            if(pass === "siso1926") {
-                document.getElementById('admin-panel').style.display = 'block';
-            } else {
-                alert("Clave incorrecta.");
-            }
-        }
-
-        function closeAdmin() {
-            document.getElementById('admin-panel').style.display = 'none';
-        }
-
-        function acceptLegal() {
-            document.getElementById('legal-modal').style.display = 'none';
-            document.getElementById('main-ui').style.display = 'block';
-            renderTimbres();
-        }
-
-        function showAlert(item) {
-            timbreSeleccionado = item;
-            const alertBox = document.getElementById('custom-alert');
-            document.getElementById('alert-text').innerHTML = `¿Avisar a <b>${item.nombre}</b> que está en la puerta?`;
-            alertBox.style.display = 'block';
-            
-            document.getElementById('confirm-btn').onclick = () => {
-                const url = `https://api.whatsapp.com/send?phone=${timbreSeleccionado.whatsapp}&text=${encodeURIComponent(mensajeDefault)}`;
-                window.location.href = url;
-            };
-        }
-
-        function closeAlert() {
-            document.getElementById('custom-alert').style.display = 'none';
-        }
-
-        window.onload = () => {
-            document.getElementById('legal-modal').style.display = 'flex';
-        };
-    </script>
-</body>
-</html>
+export default App;
