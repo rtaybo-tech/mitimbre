@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timbre Digital - Acceso Seguro</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
     <style>
         :root {
             --primary-color: #25d366;
@@ -14,265 +18,193 @@
             --text-dim: #b0b0b0;
             --danger: #ff4444;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-
-        body {
-            background-color: var(--dark-bg);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        /* --- MODAL LEGAL --- */
-        #legal-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98); z-index: 5000;
-            display: flex; justify-content: center; align-items: center; padding: 20px;
-        }
-
-        .modal-content {
-            background: var(--card-bg); padding: 25px; border-radius: 20px;
-            max-width: 450px; width: 100%; border: 1px solid #333; text-align: center;
-        }
-
-        /* --- INTERFAZ PRINCIPAL --- */
+        body { background-color: var(--dark-bg); color: var(--text-main); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+        #legal-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 5000; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 20px; max-width: 450px; width: 100%; border: 1px solid #333; text-align: center; }
         #main-ui { display: none; width: 100%; max-width: 500px; }
-        
         header { text-align: center; margin-bottom: 30px; }
-        .logo { 
-            font-size: 4rem; 
-            margin-bottom: 10px; 
-            cursor: pointer; 
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .bell-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 15px; margin-bottom: 40px;
-        }
-
-        .bell-button {
-            background: var(--card-bg); color: white; border: 1px solid #333;
-            padding: 25px 10px; border-radius: 15px; cursor: pointer;
-            display: flex; flex-direction: column; align-items: center;
-            transition: 0.2s;
-        }
-
+        .logo { font-size: 4rem; margin-bottom: 10px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .bell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-bottom: 40px; }
+        .bell-button { background: var(--card-bg); color: white; border: 1px solid #333; padding: 25px 10px; border-radius: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s; }
         .bell-button:active { transform: scale(0.95); background: #333; }
         .bell-button i { font-size: 0.7rem; color: var(--primary-color); font-style: normal; margin-bottom: 5px; }
-
-        /* --- PANEL DE CONFIGURACIÓN --- */
-        #admin-panel {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--dark-bg); z-index: 4000; padding: 20px; overflow-y: auto;
-        }
-
+        #admin-panel { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--dark-bg); z-index: 4000; padding: 20px; overflow-y: auto; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .input-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; color: var(--text-dim); font-size: 0.9rem; }
-        input {
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444;
-            background: #2a2a2a; color: white; font-size: 1rem;
-        }
-
-        .btn {
-            padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%;
-        }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; color: white; font-size: 1rem; }
+        .btn { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%; }
         .btn-primary { background: var(--primary-color); color: black; }
         .btn-outline { background: transparent; border: 1px solid #444; color: white; margin-top: 10px; }
         .btn-danger { background: var(--danger); color: white; padding: 5px 10px; font-size: 0.8rem; width: auto; }
-
-        .admin-list-item {
-            background: #2a2a2a; padding: 15px; border-radius: 10px; margin-bottom: 10px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        /* --- ALERTAS --- */
-        #custom-alert {
-            display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: white; color: black; padding: 25px; border-radius: 20px;
-            width: 90%; max-width: 400px; z-index: 6000; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
+        .admin-list-item { background: #2a2a2a; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        #custom-alert { display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: white; color: black; padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; z-index: 6000; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
-    <!-- MODAL LEGAL -->
     <div id="legal-modal">
         <div class="modal-content">
             <h2 style="color:var(--primary-color); margin-bottom: 15px;">Aviso Legal</h2>
             <p style="font-size: 0.85rem; color: #ccc; text-align: justify; margin-bottom: 20px; line-height: 1.4;">
-                Este sistema es un facilitador de contacto técnico entre visitantes y residentes. El prestador del servicio no se responsabiliza por el contenido de los mensajes enviados ni por el uso indebido de la plataforma. Al continuar, usted acepta que el sistema redirigirá su solicitud a la aplicación WhatsApp del destinatario. No se almacenan datos personales en servidores externos conforme a la Ley 25.326 de Protección de Datos Personales.
+                Este sistema es un facilitador de contacto técnico... (Protección de Datos Personales).
             </p>
             <button class="btn btn-primary" onclick="acceptLegal()">Acepto y deseo continuar</button>
         </div>
     </div>
 
-    <!-- INTERFAZ PRINCIPAL -->
     <div id="main-ui">
         <header>
             <div class="logo" id="logo-trigger" onclick="handleLogoClick()">🔔</div>
-            <h1>Timbre Digital</h1>
+            <h1 id="edificio-titulo">Timbre Digital</h1>
             <p style="color: var(--text-dim);">Toque el botón correspondiente para anunciar su llegada</p>
         </header>
-
         <div class="bell-grid" id="bell-grid"></div>
-
         <footer style="text-align: center; margin-top: 40px;">
-            <p style="font-size: 0.7rem; color: #333;">Sistema de Enlace Técnico v2.2</p>
+            <p style="font-size: 0.7rem; color: #333;">Sistema Multi-Edificio v3.0</p>
         </footer>
     </div>
 
-    <!-- PANEL ADMIN -->
     <div id="admin-panel">
         <div class="admin-header">
-            <h2>Panel de Configuración</h2>
+            <h2>Panel Edificio</h2>
             <button class="btn btn-outline" style="width: auto;" onclick="closeAdmin()">Salir</button>
         </div>
-
         <div style="background: var(--card-bg); padding: 15px; border-radius: 15px; margin-bottom: 30px;">
-            <h3 style="margin-bottom: 15px;">Añadir Timbre</h3>
+            <div class="input-group">
+                <label>Nombre del Edificio</label>
+                <input type="text" id="nombre-edificio-input" placeholder="Ej: Edificio Los Olivos">
+                <button class="btn btn-primary" style="margin-top:5px; height:30px; padding:0;" onclick="guardarNombreEdificio()">Actualizar Nombre</button>
+            </div>
+            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+            <h3>Añadir Timbre</h3>
             <div class="input-group">
                 <label>Nombre del Departamento / Local</label>
                 <input type="text" id="new-name" placeholder="Ej: Departamento 4B">
             </div>
             <div class="input-group">
                 <label>WhatsApp (Ej: 5491100000000)</label>
-                <input type="number" id="new-phone" placeholder="Número completo sin el +">
+                <input type="number" id="new-phone" placeholder="Sin el +">
             </div>
             <button class="btn btn-primary" onclick="addTimbre()">Guardar Timbre</button>
         </div>
-
-        <h3>Timbres Registrados</h3>
+        <h3>Registrados en este edificio</h3>
         <div id="admin-list" style="margin-top: 15px;"></div>
     </div>
 
-    <!-- ALERTA DE LLAMADA -->
     <div id="custom-alert">
         <h3 style="margin-bottom: 10px;">Confirmar Envío</h3>
         <p id="alert-text" style="margin-bottom: 15px; font-size: 0.95rem;"></p>
-        <p style="font-size: 0.75rem; color: #666; margin-bottom: 20px;">
-            Al pulsar "Enviar", se abrirá WhatsApp con un mensaje predeterminado.
-        </p>
         <div style="display: flex; gap: 10px;">
-            <button class="btn btn-outline" style="color: black; border-color: #ccc;" onclick="closeAlert()">Cancelar</button>
+            <button class="btn btn-outline" style="color: black;" onclick="closeAlert()">Cancelar</button>
             <button class="btn btn-primary" id="confirm-btn">Enviar Mensaje</button>
         </div>
     </div>
 
     <script>
+        // --- CONFIGURACIÓN DE FIREBASE (REEMPLAZA CON TUS DATOS) ---
+        const firebaseConfig = {
+            apiKey: "Aiza...", 
+            authDomain: "tu-proyecto.firebaseapp.com",
+            databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
+            projectId: "tu-proyecto",
+            storageBucket: "tu-proyecto.appspot.com",
+            messagingSenderId: "123456",
+            appId: "1:123456:web:789"
+        };
+        // ----------------------------------------------------------
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Identificar qué edificio es por la URL (?id=edificio1)
+        const params = new URLSearchParams(window.location.search);
+        const edificioID = params.get('id') || 'demo'; 
+
         let clickCount = 0;
         let lastClickTime = 0;
-        let timbreSeleccionado = null;
+        let listadoTimbres = [];
 
-        function handleLogoClick() {
-            const now = Date.now();
-            if (now - lastClickTime > 1500) clickCount = 0; 
-            clickCount++;
-            lastClickTime = now;
-            if (clickCount === 4) {
-                clickCount = 0;
-                checkAdminPassword();
-            }
+        function init() {
+            // Leer Nombre del Edificio
+            db.ref('edificios/' + edificioID + '/nombre').on('value', (snap) => {
+                const n = snap.val() || "Timbre Digital";
+                document.getElementById('edificio-titulo').innerText = n;
+                document.getElementById('nombre-edificio-input').value = n;
+            });
+
+            // Leer Timbres
+            db.ref('timbres/' + edificioID).on('value', (snap) => {
+                const data = snap.val();
+                listadoTimbres = data ? Object.entries(data).map(([id, val]) => ({...val, id})) : [];
+                renderTimbres();
+            });
         }
-
-        let listadoTimbres = JSON.parse(localStorage.getItem('timbres_config')) || [
-            { id: 1, nombre: "Portería", whatsapp: "5491100000000" }
-        ];
-
-        const mensajeDefault = "🔔 *AVISO DE TIMBRE*: Hay alguien en la puerta solicitando atención.";
 
         function renderTimbres() {
             const grid = document.getElementById('bell-grid');
             const adminList = document.getElementById('admin-list');
-            grid.innerHTML = '';
-            adminList.innerHTML = '';
+            grid.innerHTML = ''; adminList.innerHTML = '';
 
-            listadoTimbres.forEach((item, index) => {
+            listadoTimbres.forEach((item) => {
                 const btn = document.createElement('button');
                 btn.className = 'bell-button';
                 btn.innerHTML = `<i>TIMBRE</i> <strong>${item.nombre}</strong>`;
                 btn.onclick = () => showAlert(item);
                 grid.appendChild(btn);
 
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'admin-list-item';
-                itemDiv.innerHTML = `
-                    <div>
-                        <strong>${item.nombre}</strong><br>
-                        <small style="color:var(--text-dim)">${item.whatsapp}</small>
-                    </div>
-                    <button class="btn btn-danger" onclick="removeTimbre(${index})">Eliminar</button>
-                `;
-                adminList.appendChild(itemDiv);
+                const div = document.createElement('div');
+                div.className = 'admin-list-item';
+                div.innerHTML = `<div><strong>${item.nombre}</strong><br><small>${item.whatsapp}</small></div>
+                                 <button class="btn btn-danger" onclick="removeTimbre('${item.id}')">Eliminar</button>`;
+                adminList.appendChild(div);
             });
-            
-            localStorage.setItem('timbres_config', JSON.stringify(listadoTimbres));
         }
 
         function addTimbre() {
-            const name = document.getElementById('new-name').value;
-            const phone = document.getElementById('new-phone').value;
-            if(!name || !phone) return alert("Por favor complete los campos.");
-            listadoTimbres.push({ id: Date.now(), nombre: name, whatsapp: phone });
-            document.getElementById('new-name').value = '';
-            document.getElementById('new-phone').value = '';
-            renderTimbres();
+            const n = document.getElementById('new-name').value;
+            const p = document.getElementById('new-phone').value;
+            if(n && p) db.ref('timbres/' + edificioID).push({ nombre: n, whatsapp: p });
+            document.getElementById('new-name').value = ''; document.getElementById('new-phone').value = '';
         }
 
-        function removeTimbre(index) {
-            if(confirm("¿Seguro desea eliminar este registro?")) {
-                listadoTimbres.splice(index, 1);
-                renderTimbres();
+        function removeTimbre(id) {
+            if(confirm("¿Eliminar?")) db.ref('timbres/' + edificioID + '/' + id).remove();
+        }
+
+        function guardarNombreEdificio() {
+            const n = document.getElementById('nombre-edificio-input').value;
+            db.ref('edificios/' + edificioID).update({ nombre: n });
+            alert("Nombre actualizado");
+        }
+
+        function handleLogoClick() {
+            const now = Date.now();
+            if (now - lastClickTime > 1500) clickCount = 0;
+            clickCount++; lastClickTime = now;
+            if (clickCount === 4) {
+                if(prompt("Clave:") === "siso1926") document.getElementById('admin-panel').style.display = 'block';
             }
-        }
-
-        function checkAdminPassword() {
-            const pass = prompt("Ingrese la clave de configuración:");
-            if(pass === "siso1926") {
-                document.getElementById('admin-panel').style.display = 'block';
-            } else {
-                alert("Clave incorrecta.");
-            }
-        }
-
-        function closeAdmin() {
-            document.getElementById('admin-panel').style.display = 'none';
         }
 
         function acceptLegal() {
             document.getElementById('legal-modal').style.display = 'none';
             document.getElementById('main-ui').style.display = 'block';
-            renderTimbres();
+            init();
         }
 
         function showAlert(item) {
-            timbreSeleccionado = item;
-            const alertBox = document.getElementById('custom-alert');
-            document.getElementById('alert-text').innerHTML = `¿Desea avisar a <b>${item.nombre}</b> que se encuentra en la puerta?`;
-            alertBox.style.display = 'block';
-            
+            document.getElementById('alert-text').innerHTML = `¿Avisar a <b>${item.nombre}</b>?`;
+            document.getElementById('custom-alert').style.display = 'block';
             document.getElementById('confirm-btn').onclick = () => {
-                const url = `https://api.whatsapp.com/send?phone=${timbreSeleccionado.whatsapp}&text=${encodeURIComponent(mensajeDefault)}`;
+                const url = `https://api.whatsapp.com/send?phone=${item.whatsapp}&text=🔔 *AVISO DE TIMBRE*: Hay alguien en la puerta.`;
                 window.location.href = url;
             };
         }
 
-        function closeAlert() {
-            document.getElementById('custom-alert').style.display = 'none';
-        }
-
-        // Asegurar que el modal se vea al cargar
-        window.onload = () => {
-            document.getElementById('legal-modal').style.display = 'flex';
-        };
+        function closeAlert() { document.getElementById('custom-alert').style.display = 'none'; }
+        function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
     </script>
 </body>
 </html>
