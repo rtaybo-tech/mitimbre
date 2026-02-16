@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timbre Digital - Sistema Multi-Edificio</title>
+    <title>Timbre Digital Profesional</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -11,12 +11,10 @@
     <style>
         :root {
             --primary-color: #25d366;
-            --secondary-color: #128c7e;
             --dark-bg: #121212;
             --card-bg: #1e1e1e;
             --text-main: #ffffff;
             --text-dim: #b0b0b0;
-            --danger: #ff4444;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
@@ -31,73 +29,60 @@
             padding: 20px;
         }
 
+        /* MODAL DE AVISO LEGAL OBLIGATORIO */
         #legal-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.98); z-index: 5000;
-            display: flex; justify-content: center; align-items: center; padding: 20px;
+            background: rgba(0,0,0,0.95); z-index: 9999;
+            display: flex; justify-content: center; align-items: flex-start;
+            padding: 20px; overflow-y: auto;
         }
 
         .modal-content {
-            background: var(--card-bg); padding: 25px; border-radius: 20px;
-            max-width: 450px; width: 100%; border: 1px solid #333; text-align: center;
+            background: var(--card-bg); padding: 30px; border-radius: 20px;
+            max-width: 500px; width: 100%; border: 1px solid #333; margin-top: 20px;
         }
 
-        #main-ui { display: none; width: 100%; max-width: 500px; }
-        
-        header { text-align: center; margin-bottom: 30px; }
-        .logo { 
-            font-size: 4rem; 
-            margin-bottom: 10px; 
-            cursor: pointer; 
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+        .legal-title { color: var(--primary-color); text-align: center; margin-bottom: 20px; font-weight: bold; }
+        .legal-text { font-size: 0.9rem; color: #ccc; text-align: justify; line-height: 1.6; margin-bottom: 15px; }
+
+        /* INTERFAZ PRINCIPAL */
+        #main-ui { display: none; width: 100%; max-width: 500px; text-align: center; }
+        .logo { font-size: 5rem; margin-bottom: 10px; cursor: pointer; user-select: none; }
         
         .bell-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 15px; margin-bottom: 40px;
+            gap: 15px; margin-top: 30px;
         }
 
         .bell-button {
-            background: var(--card-bg); color: white; border: 1px solid #333;
+            background: var(--card-bg); color: white; border: 2px solid #333;
             padding: 25px 10px; border-radius: 15px; cursor: pointer;
-            display: flex; flex-direction: column; align-items: center;
-            transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; transition: 0.2s;
         }
 
-        .bell-button:active { transform: scale(0.95); background: #333; }
-        .bell-button i { font-size: 0.7rem; color: var(--primary-color); font-style: normal; margin-bottom: 5px; }
+        .bell-button:active { transform: scale(0.95); border-color: var(--primary-color); }
+        .bell-button i { font-size: 0.7rem; color: var(--primary-color); font-style: normal; margin-bottom: 5px; text-transform: uppercase; }
 
+        /* PANEL ADMIN */
         #admin-panel {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--dark-bg); z-index: 4000; padding: 20px; overflow-y: auto;
+            background: var(--dark-bg); z-index: 8000; padding: 20px; overflow-y: auto;
         }
 
-        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; color: var(--text-dim); font-size: 0.9rem; }
+        .input-group { margin-bottom: 15px; text-align: left; }
         input {
             width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444;
             background: #2a2a2a; color: white; font-size: 1rem;
         }
 
-        .btn {
-            padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%;
-        }
+        .btn { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
         .btn-primary { background: var(--primary-color); color: black; }
-        .btn-outline { background: transparent; border: 1px solid #444; color: white; margin-top: 10px; }
-        .btn-danger { background: var(--danger); color: white; padding: 5px 10px; font-size: 0.8rem; width: auto; }
-
-        .admin-list-item {
-            background: #2a2a2a; padding: 15px; border-radius: 10px; margin-bottom: 10px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .btn-outline { background: transparent; border: 1px solid #444; color: white; }
 
         #custom-alert {
             display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: white; color: black; padding: 25px; border-radius: 20px;
-            width: 90%; max-width: 400px; z-index: 6000; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 90%; max-width: 400px; z-index: 9000; text-align: center;
         }
     </style>
 </head>
@@ -105,61 +90,58 @@
 
     <div id="legal-modal">
         <div class="modal-content">
-            <h2 style="color:var(--primary-color); margin-bottom: 15px;">Aviso Legal</h2>
-            <p style="font-size: 0.85rem; color: #ccc; text-align: justify; margin-bottom: 20px; line-height: 1.4;">
-                Este sistema es un facilitador de contacto técnico entre visitantes y residentes conforme a la Ley 25.326.
-            </p>
-            <button class="btn btn-primary" onclick="acceptLegal()">Acepto y deseo continuar</button>
+            <h2 class="legal-title">AVISO LEGAL OBLIGATORIO</h2>
+            <div class="legal-text">
+                <p><strong>1. Alcance del servicio:</strong> Este sistema provee únicamente un acceso técnico para iniciar una comunicación voluntaria mediante WhatsApp.</p><br>
+                <p><strong>2. Exclusión de responsabilidad:</strong> El prestador no es responsable por el contenido de mensajes o usos indebidos.</p><br>
+                <p><strong>3. Ley 25.326:</strong> Este sitio no recopila ni trata datos personales. Los números visibles cuentan con consentimiento previo.</p><br>
+                <p><strong>4. Equivalencia funcional:</strong> El funcionamiento es equivalente a un timbre o portero eléctrico tradicional.</p>
+            </div>
+            <button class="btn btn-primary" onclick="acceptLegal()">Leí y acepto los términos</button>
         </div>
     </div>
 
     <div id="main-ui">
         <header>
-            <div class="logo" id="logo-trigger" onclick="handleLogoClick()">🔔</div>
+            <div class="logo" onclick="handleLogoClick()">🏠</div>
             <h1 id="building-name">Cargando...</h1>
-            <p style="color: var(--text-dim);">Toque el botón para anunciar su llegada</p>
+            <p style="color: var(--text-dim); margin-top: 5px;">Toque el botón para anunciar su llegada</p>
         </header>
         <div class="bell-grid" id="bell-grid"></div>
     </div>
 
     <div id="admin-panel">
-        <div class="admin-header">
-            <h2>Panel Administrativo</h2>
-            <button class="btn btn-outline" style="width: auto;" onclick="closeAdmin()">Salir</button>
+        <h2 style="margin-bottom: 20px;">Configuración</h2>
+        <div class="input-group">
+            <label>Nombre del Edificio</label>
+            <input type="text" id="edit-building-name">
+            <button class="btn btn-primary" onclick="updateBuildingName()">Cambiar Nombre</button>
         </div>
-        <div style="background: var(--card-bg); padding: 15px; border-radius: 15px; margin-bottom: 30px;">
-            <div class="input-group">
-                <label>Nombre del Edificio / Casa</label>
-                <input type="text" id="edit-building-name" placeholder="Ej: Torre Olivos">
-                <button class="btn btn-primary" style="margin-top: 10px;" onclick="updateBuildingName()">Actualizar Nombre</button>
-            </div>
-            <hr style="border: 0.5px solid #333; margin: 20px 0;">
-            <h3>Añadir Timbre</h3>
-            <div class="input-group">
-                <label>Nombre (Ej: Depto 4B)</label>
-                <input type="text" id="new-name">
-            </div>
-            <div class="input-group">
-                <label>WhatsApp (Sin +)</label>
-                <input type="number" id="new-phone">
-            </div>
-            <button class="btn btn-primary" onclick="addTimbre()">Guardar Timbre</button>
+        <hr style="border: 1px solid #333; margin: 25px 0;">
+        <h3>Añadir Nuevo Timbre</h3>
+        <div class="input-group">
+            <input type="text" id="new-name" placeholder="Ej: Depto 101">
         </div>
-        <h3>Registrados</h3>
-        <div id="admin-list" style="margin-top: 15px;"></div>
+        <div class="input-group">
+            <input type="number" id="new-phone" placeholder="WhatsApp (Ej: 1122334455)">
+            <p style="font-size: 0.7rem; color: var(--text-dim); margin-top: 5px;">* No es necesario poner el prefijo de país (54), el sistema lo suma solo.</p>
+        </div>
+        <button class="btn btn-primary" onclick="addTimbre()">Guardar Timbre</button>
+        <button class="btn btn-outline" onclick="closeAdmin()">Cerrar Panel</button>
+        <div id="admin-list" style="margin-top: 25px;"></div>
     </div>
 
     <div id="custom-alert">
-        <h3 id="alert-title">Confirmar</h3>
-        <p id="alert-text" style="margin-bottom: 20px;"></p>
+        <h3>Confirmar Envío</h3>
+        <p id="alert-text" style="margin: 15px 0;"></p>
         <div style="display: flex; gap: 10px;">
             <button class="btn btn-outline" style="color: black;" onclick="closeAlert()">Cancelar</button>
-            <button class="btn btn-primary" id="confirm-btn">Enviar</button>
+            <button class="btn btn-primary" id="confirm-btn">Entendido, llamar</button>
         </div>
     </div>
 
     <script>
-        // CONFIGURACIÓN EXTRAÍDA DE TUS FOTOS
+        // CONFIGURACIÓN DE TU FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDel_MLTNey6XsrLgNgT5DSvqkuOznXQKk",
             authDomain: "mi-timbre-158cc.firebaseapp.com",
@@ -167,92 +149,93 @@
             projectId: "mi-timbre-158cc",
             storageBucket: "mi-timbre-158cc.firebasestorage.app",
             messagingSenderId: "390257996402",
-            appId: "1:390257996402:web:36c0bda316b868f15fc8eb",
-            measurementId: "G-RQ8G4EPK0X"
+            appId: "1:390257996402:web:36c0bda316b868f15fc8eb"
         };
         
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Identificamos el edificio por la URL (ej: ?id=edificio1)
         const urlParams = new URLSearchParams(window.location.search);
         const edificioID = urlParams.get('id') || 'demo';
 
-        let listadoTimbres = [];
         let clickCount = 0;
         let lastClickTime = 0;
-
-        function initData() {
-            // Cargar nombre
-            db.ref('edificios/' + edificioID + '/nombre').on('value', (snap) => {
-                const name = snap.val() || "Mi Timbre Digital";
-                document.getElementById('building-name').innerText = name;
-                document.getElementById('edit-building-name').value = name;
-            });
-
-            // Cargar timbres
-            db.ref('timbres/' + edificioID).on('value', (snap) => {
-                const data = snap.val();
-                listadoTimbres = data ? Object.entries(data).map(([key, val]) => ({...val, id: key})) : [];
-                renderTimbres();
-            });
-        }
-
-        function renderTimbres() {
-            const grid = document.getElementById('bell-grid');
-            const adminList = document.getElementById('admin-list');
-            grid.innerHTML = ''; adminList.innerHTML = '';
-
-            listadoTimbres.forEach(item => {
-                const btn = document.createElement('button');
-                btn.className = 'bell-button';
-                btn.innerHTML = `<i>TIMBRE</i><strong>${item.nombre}</strong>`;
-                btn.onclick = () => {
-                    document.getElementById('alert-text').innerHTML = `¿Avisar a <b>${item.nombre}</b>?`;
-                    document.getElementById('custom-alert').style.display = 'block';
-                    document.getElementById('confirm-btn').onclick = () => {
-                        window.location.href = `https://api.whatsapp.com/send?phone=${item.whatsapp}&text=🔔 *AVISO*: Hay alguien en la puerta.`;
-                    };
-                };
-                grid.appendChild(btn);
-
-                const div = document.createElement('div');
-                div.className = 'admin-list-item';
-                div.innerHTML = `<div><strong>${item.nombre}</strong></div><button class="btn btn-danger" onclick="removeTimbre('${item.id}')">X</button>`;
-                adminList.appendChild(div);
-            });
-        }
-
-        function addTimbre() {
-            const n = document.getElementById('new-name').value;
-            const p = document.getElementById('new-phone').value;
-            if(n && p) db.ref('timbres/' + edificioID).push({ nombre: n, whatsapp: p });
-            document.getElementById('new-name').value = ''; document.getElementById('new-phone').value = '';
-        }
-
-        function removeTimbre(key) { if(confirm("¿Eliminar?")) db.ref('timbres/' + edificioID + '/' + key).remove(); }
-        
-        function updateBuildingName() {
-            const n = document.getElementById('edit-building-name').value;
-            db.ref('edificios/' + edificioID).set({ nombre: n });
-            alert("Nombre actualizado");
-        }
-
-        function handleLogoClick() {
-            const now = Date.now();
-            if (now - lastClickTime > 1500) clickCount = 0;
-            clickCount++; lastClickTime = now;
-            if (clickCount === 4) {
-                if(prompt("Clave:") === "siso1926") document.getElementById('admin-panel').style.display = 'block';
-            }
-        }
 
         function acceptLegal() {
             document.getElementById('legal-modal').style.display = 'none';
             document.getElementById('main-ui').style.display = 'block';
-            initData();
+            loadData();
         }
 
+        function loadData() {
+            db.ref('edificios/' + edificioID + '/nombre').on('value', snap => {
+                const n = snap.val() || "Timbre Digital";
+                document.getElementById('building-name').innerText = n;
+                document.getElementById('edit-building-name').value = n;
+            });
+
+            db.ref('timbres/' + edificioID).on('value', snap => {
+                const grid = document.getElementById('bell-grid');
+                const adminList = document.getElementById('admin-list');
+                grid.innerHTML = ''; adminList.innerHTML = '';
+                
+                if(snap.exists()){
+                    snap.forEach(child => {
+                        const item = child.val();
+                        // Botón visitante
+                        const b = document.createElement('button');
+                        b.className = 'bell-button';
+                        b.innerHTML = `<i>PRESIONE AQUÍ</i><strong>${item.nombre}</strong>`;
+                        b.onclick = () => openAlert(item);
+                        grid.appendChild(b);
+
+                        // Item admin
+                        const d = document.createElement('div');
+                        d.style = "background:#2a2a2a; padding:10px; margin-top:5px; border-radius:8px; display:flex; justify-content:space-between;";
+                        d.innerHTML = `<span>${item.nombre}</span><button style="color:red; background:none; border:none;" onclick="removeTimbre('${child.key}')">Eliminar</button>`;
+                        adminList.appendChild(d);
+                    });
+                }
+            });
+        }
+
+        function openAlert(item) {
+            document.getElementById('alert-text').innerText = `Se enviará un mensaje a ${item.nombre}.`;
+            document.getElementById('custom-alert').style.display = 'block';
+            document.getElementById('confirm-btn').onclick = () => {
+                const msg = encodeURIComponent("🔔 *AVISO DE TIMBRE*: Hay alguien en la puerta consultando por usted.");
+                window.location.href = `https://api.whatsapp.com/send?phone=${item.whatsapp}&text=${msg}`;
+            };
+        }
+
+        function addTimbre() {
+            const nom = document.getElementById('new-name').value;
+            let tel = document.getElementById('new-phone').value.toString();
+            
+            if(nom && tel) {
+                // LÓGICA DE PREFIJO: Si no empieza con 54, se lo agregamos
+                if(!tel.startsWith("54")) {
+                    tel = "54" + tel;
+                }
+                db.ref('timbres/' + edificioID).push({ nombre: nom, whatsapp: tel });
+                document.getElementById('new-name').value = '';
+                document.getElementById('new-phone').value = '';
+            }
+        }
+
+        function updateBuildingName() {
+            const n = document.getElementById('edit-building-name').value;
+            db.ref('edificios/' + edificioID).update({ nombre: n });
+            alert("Nombre actualizado");
+        }
+
+        function removeTimbre(key) { if(confirm("¿Eliminar?")) db.ref('timbres/' + edificioID + '/' + key).remove(); }
+        function handleLogoClick() {
+            const now = Date.now();
+            if (now - lastClickTime > 1500) clickCount = 0;
+            clickCount++; lastClickTime = now;
+            if (clickCount === 4) { if(prompt("Clave:") === "siso1926") document.getElementById('admin-panel').style.display = 'block'; }
+        }
         function closeAlert() { document.getElementById('custom-alert').style.display = 'none'; }
         function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
     </script>
